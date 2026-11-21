@@ -31,6 +31,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           mkdir -m 700 "$RUNNER_TEMP/n05g-evidence"
+          python3 -c 'import os,json; print(json.dumps({"schema":1,"status":"job_started","run_id":os.environ["GITHUB_RUN_ID"],"attempt":os.environ["GITHUB_RUN_ATTEMPT"],"harness_sha":os.environ["GITHUB_SHA"]}))' > "$RUNNER_TEMP/n05g-evidence/job-start.json"
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
           python-version: '3.12'

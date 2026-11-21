@@ -2,6 +2,9 @@
 """Run only on the isolated GitHub-hosted Linux coordinator. No push or device actions."""
 import hashlib, json, os, pathlib, re, subprocess, sys, tomllib
 
+CURRENT_STAGE = "entry"
+EVIDENCE = None
+
 PINS = {'mmrl-next': ('Mikeyphw/MMRL', '0750675f3ff347c7487e25bf9f155dbc023769ea', 'next'), 'mmrl-lsposed': ('Mikeyphw/MMRL-LSPosed', 'a63961f35a812dec9bfe6c6954cb0525d2f4ce8a', 'main'), 'mmrl-shared': ('Mikeyphw/MMRL-Shared', '1bd273c7c386b4116144db5c36659ead47cd299a', 'main')}
 DEV = '860671c4782ce58b3344871248456c516fb8ce08'
 LOCK_BYTES = '4d32ce000eb309a8a346232a9d16fa522e695cdb97ea2bb347bd028553201429'
@@ -12,7 +15,11 @@ def need(ok, reason):
         raise RuntimeError(reason)
 
 def stage(name):
+    global CURRENT_STAGE
+    CURRENT_STAGE = name
     print('N05G_HOSTED_STAGE='+name, flush=True)
+    if EVIDENCE is not None:
+        write(EVIDENCE/'progress.json', receipt('running'))
 
 def cmd(*argv, cwd=None, capture=False):
     print('+', ' '.join(map(str,argv)), flush=True)
@@ -26,7 +33,9 @@ def digest(data):
     return hashlib.sha256(data).hexdigest()
 
 def write(path, obj):
-    path.write_text(json.dumps(obj, indent=2, sort_keys=True)+'\n')
+    tmp=path.with_suffix(path.suffix+'.tmp')
+    tmp.write_text(json.dumps(obj, indent=2, sort_keys=True)+'\n')
+    tmp.replace(path)
 
 def machine(raw):
     need(isinstance(raw,dict) and raw.get('ok') is True and raw.get('exit_code') == 0 and isinstance(raw.get('data'),dict), 'NATIVE_MACHINE_RESULT_REFUSED')
@@ -115,16 +124,36 @@ def main(coord,ev):
     # Never pass GH_TOKEN/GITHUB_TOKEN or signing secrets to child processes.
     for k in ('GH_TOKEN','GITHUB_TOKEN','MMRL_FEDERATION_TOKEN','SSH_AUTH_SOCK'):
         os.environ.pop(k,None)
-    cmd(executable,'--version')
+    # This source revision has no root --version option. Do not infer its
+    # source identity from the package's version string (1.1.0 at this pin).
+    # Check installed package metadata, entry point and schema instead.
+    identity = cmd(py, '-c', """import importlib.metadata as m, json, pathlib, devtool
+from devtool.core_parser import canonical_cli_schema
+from devtool.cli import build_parser
+p=pathlib.Path(devtool.__file__).resolve()
+d=m.distribution('devtool')
+assert p.is_relative_to(pathlib.Path(__import__('sys').prefix).resolve())
+assert any(x.name=='devtool' and x.value=='devtool.cli:main' for x in d.entry_points)
+s=canonical_cli_schema(); assert s['schema_version']==2
+args=build_parser().parse_args(['-r','.', 'federation','plan','validate-both'])
+assert args.command=='federation'
+print(json.dumps({'distribution_version':d.version,'schema_version':s['schema_version'],'cli_federation_plan_parsed':True}))""", capture=True)
+    write(ev/'launcher-identity.json', {'devtool_sha':DEV, **json.loads(identity)})
+    cmd(executable, '--help')
+    print('N05G_HOSTED_LAUNCHER_SMOKE_PASS', flush=True)
     def native(label,*args):
         print('N05G_NATIVE_COMMAND=federation '+' '.join(args)+' --json',flush=True)
         out=ev/(label+'.json')
         with out.open('x') as f:
-            r=subprocess.Popen([str(executable),'-r',str(coord),'federation',*args,'--json'],stdout=subprocess.PIPE,text=True)
+            argv=[str(executable),'-r',str(coord),'federation',*args,'--json']
+            if label=='run':
+                argv=[str(py),str(coord/'native_event_capture.py'),str(ev/'native-events.jsonl'),*argv[1:]]
+            r=subprocess.Popen(argv,stdout=subprocess.PIPE,text=True)
             for line in r.stdout:
                 f.write(line); f.flush(); print(line,end='',flush=True)
             rc=r.wait()
-        need(rc==0,f'NATIVE_{label}_EXIT_{rc}')
+        write(ev/(label+'-exit.json'), {'operation':label,'exit_code':rc})
+        if rc != 0: raise subprocess.CalledProcessError(rc, argv)
         return machine(json.loads(out.read_text()))
     stage('portable-lock-before-freeze')
     plan=native('plan','plan','validate-both'); check_plan(plan,m)
@@ -156,7 +185,34 @@ def main(coord,ev):
     write(ev/'hosted-result.json',{'schema':1,'verdict':'NATIVE_PARENT_AND_CHILD_CHECKPOINT_ACCEPTED_PENDING_INDEPENDENT_CI_REVIEW','repository':os.environ['GITHUB_REPOSITORY'],'harness_sha':os.environ['GITHUB_SHA'],'run_id':int(os.environ['GITHUB_RUN_ID']),'attempt':int(os.environ['GITHUB_RUN_ATTEMPT']),'source_lock_digest':local['lock_digest'],'parent_run_id':report['parent_run_id'],'child_run_ids':{x['repository']:x['run_id'] for x in report['children']},'release_qualified':False,'device_qualified':False,'independently_verified':False})
     print('N05G_HOSTED_NATIVE_PARENT_CHILD_GATE_PASS',flush=True)
 
+def receipt(status, rc=None, error=None):
+    # Deliberately omit command arguments, environment, raw exception text,
+    # credentials and log content. The full error is visible in Actions logs.
+    return {'schema':1, 'status':status, 'stage':CURRENT_STAGE,
+            'repository':os.environ.get('GITHUB_REPOSITORY',''),
+            'harness_sha':os.environ.get('GITHUB_SHA',''),
+            'run_id':os.environ.get('GITHUB_RUN_ID',''),
+            'attempt':os.environ.get('GITHUB_RUN_ATTEMPT',''),
+            'exit_code':rc, 'exception_type':type(error).__name__ if error else None,
+            'devtool_sha':DEV, 'release_qualified':False, 'device_qualified':False}
+
+def entry(coord, ev):
+    global EVIDENCE, CURRENT_STAGE
+    EVIDENCE=ev; CURRENT_STAGE='entry'
+    ev.mkdir(parents=True, exist_ok=True)
+    write(ev/'progress.json',receipt('running'))
+    try:
+        main(coord,ev)
+    except BaseException as exc:
+        rc=exc.returncode if isinstance(exc,subprocess.CalledProcessError) else 130 if isinstance(exc,KeyboardInterrupt) else 1
+        rc=128-rc if rc<0 else rc or 1
+        write(ev/'terminal-receipt.json',receipt('failed',rc,exc))
+        print('N05G_HOSTED_REFUSED: '+str(exc),file=sys.stderr,flush=True)
+        import traceback
+        traceback.print_exc()
+        return rc
+    write(ev/'terminal-receipt.json',receipt('completed',0))
+    return 0
+
 if __name__=='__main__':
-    try: main(pathlib.Path(sys.argv[1]).resolve(),pathlib.Path(sys.argv[2]).resolve())
-    except Exception as exc:
-        print('N05G_HOSTED_REFUSED: '+str(exc),file=sys.stderr,flush=True); raise
+    sys.exit(entry(pathlib.Path(sys.argv[1]).resolve(),pathlib.Path(sys.argv[2]).resolve()))
