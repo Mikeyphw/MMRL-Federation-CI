@@ -1,0 +1,99 @@
+{
+  "accepted_coordinator_commit": "e2dc79236f52aa56ea2188108ce1e9b76e0ae951",
+  "accepted_coordinator_config_blob": "dce4c323ca11acf3a2f174e59d8b4f4737ccb613",
+  "accepted_lock_sha256": "4d32ce000eb309a8a346232a9d16fa522e695cdb97ea2bb347bd028553201429",
+  "children": {
+    "mmrl-lsposed": {
+      "branch": "main",
+      "config_digest": "990dceb792f3cb931f3455fcf0fd9dfe153161b727e1420527c4c98ef402f338",
+      "equivalence_digest": "17d264bfc73c90c4ba2c623d3c7e16735c64978fbc511730c0c4fed4acfc84b3",
+      "head_ref": "refs/heads/main",
+      "head_tree": "9a3e6b667207ef5a6f66f2bb2e3493e15090fa56",
+      "index_fingerprint": "a1988065b4303939822ba59526a2315a5a1d002204e5f2aab1f5b14ad586837c",
+      "index_tree": "9a3e6b667207ef5a6f66f2bb2e3493e15090fa56",
+      "origin": "git@github.com:Mikeyphw/MMRL-LSPosed.git",
+      "repository_remote_fingerprint": "59fa432a841ec5b634e7168f3e8ac027f879939ff7eceb2babd525d0b4d62b04",
+      "source_digest": "7e2fc19bc8120d185251fe903cd434149ce8fe12efdf92103091921f00b00bc3",
+      "start_commit": "a63961f35a812dec9bfe6c6954cb0525d2f4ce8a",
+      "upstream": {
+        "configured": true,
+        "merge_ref": "refs/heads/main",
+        "name": "refs/remotes/origin/main",
+        "partial_configuration": false,
+        "remote": "origin",
+        "resolved": true,
+        "sha": "a63961f35a812dec9bfe6c6954cb0525d2f4ce8a",
+        "short_name": "origin/main"
+      }
+    },
+    "mmrl-next": {
+      "branch": "next",
+      "config_digest": "a4c30e07cb5b2ddd9a19097a8ba7e7de0a7c8827d2dffc3510a1ebcc91610009",
+      "equivalence_digest": "887c24890492612809433087e91dce1dd5352e97531321f01077c93364bdde92",
+      "head_ref": "refs/heads/next",
+      "head_tree": "d6ba1d2f54c9d4e9eb372cf22bab5943bf87ace5",
+      "index_fingerprint": "f5828537a9c0c7e436186da445834328cf3fc871eabdb2413e60204d0ecc6ca5",
+      "index_tree": "d6ba1d2f54c9d4e9eb372cf22bab5943bf87ace5",
+      "origin": "https://github.com/Mikeyphw/MMRL.git",
+      "repository_remote_fingerprint": "47f30967ebc233f2a9106e4f901f3070078be056da8dd9a7f9bfa841543962bc",
+      "source_digest": "0cf8112eba21987550c61d590eb184b4a02fcdb9de4a52c4c27245af80a3c314",
+      "start_commit": "0750675f3ff347c7487e25bf9f155dbc023769ea",
+      "upstream": {
+        "configured": true,
+        "merge_ref": "refs/heads/next",
+        "name": "refs/remotes/origin/next",
+        "partial_configuration": false,
+        "remote": "origin",
+        "resolved": true,
+        "sha": "0750675f3ff347c7487e25bf9f155dbc023769ea",
+        "short_name": "origin/next"
+      }
+    }
+  },
+  "devtool_sha": "860671c4782ce58b3344871248456c516fb8ce08",
+  "nodes": [
+    [
+      "mmrl-next",
+      "mmrl_next",
+      "ci",
+      "mmrl-next::mmrl_next.ci.apk"
+    ],
+    [
+      "mmrl-next",
+      "mmrl_next",
+      "ci",
+      "mmrl-next::mmrl_next.ci.lint"
+    ],
+    [
+      "mmrl-next",
+      "mmrl_next",
+      "ci",
+      "mmrl-next::mmrl_next.ci.test"
+    ],
+    [
+      "mmrl-lsposed",
+      "lsposed_app",
+      "ci",
+      "mmrl-lsposed::lsposed_app.ci.apk"
+    ],
+    [
+      "mmrl-lsposed",
+      "lsposed_app",
+      "ci",
+      "mmrl-lsposed::lsposed_app.ci.lint"
+    ],
+    [
+      "mmrl-lsposed",
+      "lsposed_app",
+      "ci",
+      "mmrl-lsposed::lsposed_app.ci.test"
+    ]
+  ],
+  "portable": {
+    "equivalence_digest": "f4f460ae3bb28e56d829f55db547e49a5574b45e194ed052f439c8b77c7eff10",
+    "graph_digest": "7b51c9c9aae9dc266498ca38917a73f32d98b0bf9a1f1cfbb8287eabbf13326c",
+    "lock_digest": "10d8adb8e6fa94e870ce7c90e9d6a28351dbbe76ab48ad313836c5d16998ff67"
+  },
+  "projected_config_sha256": "ba35a42453c4756919eb33a34336f811c52724d0e4469f96f7691e0b9f020439",
+  "schema": 1
+}

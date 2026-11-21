@@ -1,0 +1,4 @@
+"project" = { "runner" = "python", "platform" = "tooling" }
+"workspace" = { "default_target" = "coordinator" }
+"targets" = { "coordinator" = { "root" = ".", "runner" = "python", "platform" = "tooling" } }
+"federation" = { "schema" = 1, "repositories" = { "mmrl-next" = { "path" = "../mmrl-next", "required" = true, "requires" = { "capabilities" = ["mmrl-kotlin-core/v1"] } }, "mmrl-lsposed" = { "path" = "../mmrl-lsposed", "required" = true, "requires" = { "capabilities" = ["mmrl-kotlin-core/v1"] } }, "mmrl-shared" = { "path" = "../mmrl-shared", "required" = true, "exports" = { "capabilities" = ["mmrl-kotlin-core/v1"] } } }, "workflows" = { "validate-both" = { "depends_on" = ["mmrl-next::mmrl_next::ci", "mmrl-lsposed::lsposed_app::ci"] } }, "groups" = { "validation" = ["workflow:validate-both"] } }

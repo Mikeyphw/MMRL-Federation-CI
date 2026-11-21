@@ -1,0 +1,56 @@
+name: N05G native hosted federation (non-release)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: n05g-native-federation
+  cancel-in-progress: false
+jobs:
+  validate-both:
+    if: github.repository == 'Mikeyphw/MMRL-Federation-CI' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 100
+    defaults:
+      run:
+        shell: bash
+    env:
+      DEVTOOL_EXECUTION_PRESENTATION: plain
+      DEVTOOL_JOB_UI: plain
+      DEVTOOL_TEXTUAL_APPLY_HOST: '0'
+      DEVTOOL_TEXTUAL_EXECUTION_HOST: '0'
+      DEVTOOL_HUD_OVERLAY: '0'
+      PYTHONDONTWRITEBYTECODE: '1'
+      GIT_TERMINAL_PROMPT: '0'
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          path: coordinator
+          persist-credentials: false
+      - name: Establish isolated evidence directory
+        run: |
+          set -Eeuo pipefail
+          mkdir -m 700 "$RUNNER_TEMP/n05g-evidence"
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd
+        with:
+          cmdline-tools-version: 15859902
+          packages: 'platforms;android-36 build-tools;36.0.0 platform-tools'
+      - name: Run source-bound native federation
+        run: |
+          set -Eeuo pipefail
+          python3 coordinator/hosted.py "$GITHUB_WORKSPACE/coordinator" "$RUNNER_TEMP/n05g-evidence"
+      - name: Preserve execution evidence (no APK publication or release)
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: n05g-federation-${{ github.run_id }}-attempt${{ github.run_attempt }}
+          path: ${{ runner.temp }}/n05g-evidence/
+          if-no-files-found: error
+          retention-days: 14
